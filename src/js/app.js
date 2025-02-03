@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeFileSystem();
     initializeSearch();
     initializeDropzone();
+    initializePDFThumbnails();
 });
 
 function initializeFileSystem() {
@@ -30,24 +31,27 @@ function initializeSearch() {
     const searchInput = document.querySelector('.search-input');
     if (!searchInput) return;
 
-    searchInput.addEventListener('input', debounce((e) => {
-        const query = e.target.value.toLowerCase();
-        const items = document.querySelectorAll('.file-item');
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const fileCards = document.querySelectorAll('.file-card');
         
-        items.forEach(item => {
-            const name = item.querySelector('.file-name').textContent.toLowerCase();
-            item.style.display = name.includes(query) ? 'flex' : 'none';
+        fileCards.forEach(card => {
+            const fileName = card.querySelector('.file-name').textContent.toLowerCase();
+            if (fileName.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
         });
-    }, 300));
+    });
 }
 
 function initializeDropzone() {
-    const dropzone = document.querySelector('.dropzone');
+    const dropzone = document.getElementById('dropzone');
     if (!dropzone) return;
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropzone.addEventListener(eventName, preventDefaults, false);
-        document.body.addEventListener(eventName, preventDefaults, false);
     });
 
     ['dragenter', 'dragover'].forEach(eventName => {
@@ -62,21 +66,9 @@ function initializeDropzone() {
 
     const fileInput = dropzone.querySelector('input[type="file"]');
     if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-                handleFiles(Array.from(files));
-                e.target.value = '';
-            }
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(this.files);
         });
-
-        const label = dropzone.querySelector('label.btn');
-        if (label) {
-            label.addEventListener('click', (e) => {
-                e.preventDefault();
-                fileInput.click();
-            });
-        }
     }
 }
 
@@ -85,38 +77,50 @@ function openMediaPreview(url) {
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <div class="media-player">
-                ${url.includes('.mp4') 
-                    ? `<video controls><source src="${url}" type="video/mp4"></video>`
-                    : `<audio controls><source src="${url}" type="audio/mpeg"></audio>`
-                }
-            </div>
+            <button class="modal-close">&times;</button>
+            <video controls style="width: 100%; height: auto;">
+                <source src="${url}" type="video/mp4">
+                Votre navigateur ne supporte pas la lecture de vidéos.
+            </video>
         </div>
     `;
     
     document.body.appendChild(modal);
-    modal.querySelector('.close').onclick = () => modal.remove();
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
+
+    const closeBtn = modal.querySelector('.modal-close');
+    closeBtn.addEventListener('click', () => {
+        modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 function openPDFPreview(url) {
     const modal = document.createElement('div');
-    modal.className = 'modal pdf-modal';
+    modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <iframe src="${url}" class="pdf-viewer"></iframe>
+            <button class="modal-close">&times;</button>
+            <iframe src="${url}" frameborder="0"></iframe>
         </div>
     `;
     
     document.body.appendChild(modal);
-    modal.querySelector('.close').onclick = () => modal.remove();
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
+
+    const closeBtn = modal.querySelector('.modal-close');
+    closeBtn.addEventListener('click', () => {
+        modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 function preventDefaults(e) {
@@ -133,165 +137,90 @@ function unhighlight(e) {
 }
 
 function handleDrop(e) {
-    const files = e.dataTransfer.files;
+    const dt = e.dataTransfer;
+    const files = dt.files;
     handleFiles(files);
 }
 
 function handleFiles(files) {
-    [...files].forEach(uploadFile);
-}
-
-function uploadFile(file) {
     const formData = new FormData();
-    formData.append('file', file);
-    
-    const progressBar = createProgressBar(file.name);
-    const progressFill = progressBar.querySelector('.upload-progress-fill');
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentView = urlParams.get('view');
-    const currentPath = urlParams.get('path');
-    
-    let uploadUrl = '?upload=1';
-    if (currentView) uploadUrl += `&view=${currentView}`;
-    if (currentPath) uploadUrl += `&path=${currentPath}`;
-    
-    fetch(uploadUrl, {
+    [...files].forEach((file, index) => {
+        formData.append(`files[${index}]`, file);
+    });
+
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'upload-progress';
+    progressContainer.innerHTML = `
+        <div class="progress-info">
+            <span class="filename">Upload en cours de ${files.length} fichier(s)...</span>
+            <span class="percent">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress" style="width: 0%"></div>
+        </div>
+    `;
+    document.querySelector('.upload-progress-container').appendChild(progressContainer);
+
+    fetch('?upload=1', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            progressBar.classList.add('complete');
-            progressFill.style.width = '100%';
+            progressContainer.classList.add('success');
+            progressContainer.querySelector('.filename').textContent = 'Upload terminé avec succès!';
             setTimeout(() => {
+                progressContainer.remove();
                 window.location.reload();
-            }, 1000);
+            }, 2000);
         } else {
-            progressBar.classList.add('error');
-            progressFill.style.width = '100%';
+            throw new Error(data.error || 'Erreur lors de l\'upload');
         }
     })
     .catch(error => {
-        progressBar.classList.add('error');
-        progressFill.style.width = '100%';
         console.error('Upload error:', error);
+        progressContainer.classList.add('error');
+        progressContainer.querySelector('.filename').textContent = 'Erreur: ' + error.message;
+        setTimeout(() => {
+            progressContainer.remove();
+        }, 5000);
     });
 }
 
-function createProgressBar(filename) {
-    const progressBar = document.createElement('div');
-    progressBar.className = 'upload-progress';
-    progressBar.innerHTML = `
-        <div class="upload-progress-filename">${filename}</div>
-        <div class="upload-progress-bar">
-            <div class="upload-progress-fill"></div>
-        </div>
-    `;
-    document.querySelector('.upload-progress-container').appendChild(progressBar);
-    return progressBar;
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-async function previewPDF(filePath) {
-    // Créer la modal
-    const modal = document.createElement('div');
-    modal.className = 'modal pdf-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div class="pdf-controls">
-                <button class="btn btn-icon" id="prev-page">◀</button>
-                <span id="page-info">Page <span id="page-num"></span> / <span id="page-count"></span></span>
-                <button class="btn btn-icon" id="next-page">▶</button>
-                <select id="zoom-select">
-                    <option value="0.5">50%</option>
-                    <option value="0.75">75%</option>
-                    <option value="1" selected>100%</option>
-                    <option value="1.25">125%</option>
-                    <option value="1.5">150%</option>
-                    <option value="2">200%</option>
-                </select>
-            </div>
-            <canvas id="pdf-canvas"></canvas>
-        </div>
-    `;
+async function initializePDFThumbnails() {
+    const thumbnails = document.querySelectorAll('.pdf-thumbnail');
     
-    document.body.appendChild(modal);
-    
-    // Variables pour le PDF
-    let pdfDoc = null;
-    let pageNum = 1;
-    let scale = 1;
-    const canvas = document.getElementById('pdf-canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Charger le PDF
-    try {
-        const loadingTask = pdfjsLib.getDocument('?pdf_preview=1&file=' + encodeURIComponent(filePath));
-        pdfDoc = await loadingTask.promise;
-        document.getElementById('page-count').textContent = pdfDoc.numPages;
-        renderPage(pageNum);
-    } catch (error) {
-        console.error('Erreur lors du chargement du PDF:', error);
-        modal.remove();
-        alert('Erreur lors du chargement du PDF');
-        return;
-    }
-    
-    // Fonction pour rendre une page
-    async function renderPage(num) {
-        const page = await pdfDoc.getPage(num);
-        const viewport = page.getViewport({ scale });
-        
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+    for (const canvas of thumbnails) {
+        const pdfUrl = canvas.dataset.pdf;
+        const pageNum = parseInt(canvas.dataset.page) || 1;
         
         try {
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(pageNum);
+            
+            const viewport = page.getViewport({ scale: 1.0 });
+            const scale = Math.min(200 / viewport.width, 200 / viewport.height);
+            const scaledViewport = page.getViewport({ scale });
+            
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+            
+            const context = canvas.getContext('2d');
             await page.render({
-                canvasContext: ctx,
-                viewport: viewport
+                canvasContext: context,
+                viewport: scaledViewport
             }).promise;
             
-            document.getElementById('page-num').textContent = num;
         } catch (error) {
-            console.error('Erreur lors du rendu de la page:', error);
+            console.error('Erreur lors de la génération de la miniature PDF:', error);
+            canvas.style.display = 'none';
         }
     }
-    
-    // Gestionnaires d'événements
-    document.getElementById('prev-page').onclick = () => {
-        if (pageNum <= 1) return;
-        pageNum--;
-        renderPage(pageNum);
-    };
-    
-    document.getElementById('next-page').onclick = () => {
-        if (pageNum >= pdfDoc.numPages) return;
-        pageNum++;
-        renderPage(pageNum);
-    };
-    
-    document.getElementById('zoom-select').onchange = (e) => {
-        scale = parseFloat(e.target.value);
-        renderPage(pageNum);
-    };
-    
-    // Fermeture de la modal
-    modal.querySelector('.close').onclick = () => modal.remove();
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
 } 
