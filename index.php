@@ -292,6 +292,33 @@ if (isset($_GET['video_thumbnail']) && isset($_GET['file'])) {
     }
 }
 
+// Gestion de la suppression de fichiers (admin uniquement)
+if ($role === 'admin' && isset($_POST['delete']) && isset($_POST['file'])) {
+    header('Content-Type: application/json');
+    $response = ['success' => false, 'error' => ''];
+    
+    try {
+        $file_to_delete = isset($_GET['view']) && $_GET['view'] === 'shared' 
+            ? $config['folders']['shared'] . '/' . $_POST['file']
+            : $config['folders']['private'] . '/' . $_POST['file'];
+
+        if (file_exists($file_to_delete) && is_file($file_to_delete)) {
+            if (unlink($file_to_delete)) {
+                $response['success'] = true;
+            } else {
+                throw new Exception('Impossible de supprimer le fichier');
+            }
+        } else {
+            throw new Exception('Fichier non trouvé');
+        }
+    } catch (Exception $e) {
+        $response['error'] = $e->getMessage();
+    }
+    
+    echo json_encode($response);
+    exit;
+}
+
 // Obtenir la liste des fichiers et dossiers
 $items = [];
 if (is_dir($absolute_path)) {
@@ -510,6 +537,9 @@ usort($items, function($a, $b) {
                                             </button>
                         <?php endif; ?>
                                     </form>
+                                    <button onclick="deleteFile('<?= htmlspecialchars($item['path']) ?>', '<?= htmlspecialchars($item['name']) ?>')" class="btn btn-danger" title="Supprimer">
+    <i class="fas fa-trash"></i>
+</button>
                     <?php endif; ?>
                             </div>
                         </div>
