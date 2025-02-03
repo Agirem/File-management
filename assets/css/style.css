@@ -2166,4 +2166,47 @@ textarea {
     .search-input {
         min-height: 44px;
     }
+}
+
+/* Floating Upload Button */
+.floating-upload-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+}
+
+.btn-float {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.btn-float:hover {
+    transform: translateY(-3px);
+    background: var(--primary-dark);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+    .floating-upload-btn {
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
+    
+    .btn-float {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
 } 

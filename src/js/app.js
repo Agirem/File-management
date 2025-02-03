@@ -47,29 +47,12 @@ function initializeSearch() {
 }
 
 function initializeDropzone() {
-    const dropzone = document.getElementById('dropzone');
-    if (!dropzone) return;
+    const fileInput = document.getElementById('file-input');
+    if (!fileInput) return;
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, preventDefaults, false);
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(this.files);
     });
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, unhighlight, false);
-    });
-
-    dropzone.addEventListener('drop', handleDrop, false);
-
-    const fileInput = dropzone.querySelector('input[type="file"]');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            handleFiles(this.files);
-        });
-    }
 }
 
 function openMediaPreview(url) {
@@ -129,11 +112,17 @@ function preventDefaults(e) {
 }
 
 function highlight(e) {
-    document.querySelector('.dropzone').classList.add('dragover');
+    const dropzone = document.querySelector('.upload-zone');
+    if (dropzone) {
+        dropzone.classList.add('dragover');
+    }
 }
 
 function unhighlight(e) {
-    document.querySelector('.dropzone').classList.remove('dragover');
+    const dropzone = document.querySelector('.upload-zone');
+    if (dropzone) {
+        dropzone.classList.remove('dragover');
+    }
 }
 
 function handleDrop(e) {
@@ -161,13 +150,19 @@ function handleFiles(files) {
     `;
     document.querySelector('.upload-progress-container').appendChild(progressContainer);
 
-    fetch('?upload=1', {
+    // Ajout du paramètre upload=1 dans l'URL
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('upload', '1');
+
+    fetch(currentUrl.toString(), {
         method: 'POST',
         body: formData
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.text().then(text => {
+                throw new Error(text || `Erreur HTTP: ${response.status}`);
+            });
         }
         return response.json();
     })
@@ -260,4 +255,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-}); 
+});

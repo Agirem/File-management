@@ -409,18 +409,14 @@ usort($items, function($a, $b) {
         </div>
 
         <?php if ($role === 'admin') : ?>
-            <!-- Upload Zone -->
-            <div class="upload-zone" id="dropzone">
-                <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
-                <p>Glissez et déposez vos fichiers ici</p>
-                <p>ou</p>
-                <form id="upload-form" enctype="multipart/form-data" style="display: inline;">
-                    <label for="file-input" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        <span>Sélectionner des fichiers</span>
-                    </label>
+            <!-- Floating Upload Button -->
+            <div class="floating-upload-btn">
+                <form id="upload-form" enctype="multipart/form-data">
                     <input type="file" id="file-input" name="files[]" multiple style="display: none;">
                 </form>
+                <button class="btn-float" onclick="document.getElementById('file-input').click()">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
             <div class="upload-progress-container"></div>
         <?php endif; ?>
