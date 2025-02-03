@@ -345,6 +345,14 @@ usort($items, function($a, $b) {
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 </head>
 <body>
+    <!-- Menu Hamburger -->
+    <button class="menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay -->
+    <div class="sidebar-overlay"></div>
+
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-logo">
