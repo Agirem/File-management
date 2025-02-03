@@ -48,28 +48,55 @@ function login() {
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Connexion - Serveur de Fichiers</title>
+        <title>Connexion - FileShare</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </head>
-    <body>
-        <div class="login-form">
-            <h2>Connexion</h2>
-            <?php if (isset($error)) : ?>
-                <div class="error-message"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-            <form method="post">
-                <div class="form-group">
-                    <label>Nom d'utilisateur</label>
-                    <input type="text" name="username" required>
+    <body class="login-page">
+        <div class="login-wrapper">
+            <div class="login-left">
+                <div class="login-header">
+                    <div class="brand">
+                        <i class="fas fa-share-nodes"></i>
+                        <h1>FileShare</h1>
+                    </div>
+                    <p class="welcome-text">Bienvenue sur votre espace de partage de fichiers</p>
                 </div>
-                <div class="form-group">
-                    <label>Mot de passe</label>
-                    <input type="password" name="password" required>
+                <div class="login-illustration">
+                    <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-                <button type="submit" class="btn btn-primary">Se connecter</button>
-            </form>
+            </div>
+            <div class="login-right">
+                <div class="login-box">
+                    <h2>Connexion</h2>
+                    <?php if (isset($error)) : ?>
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <?= htmlspecialchars($error) ?>
+                        </div>
+                    <?php endif; ?>
+                    <form method="post" class="login-form">
+                        <div class="form-group">
+                            <div class="input-icon">
+                                <i class="fas fa-user"></i>
+                                <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" name="password" placeholder="Mot de passe" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-login">
+                            <span>Se connecter</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </body>
     </html>
@@ -417,63 +444,73 @@ usort($items, function($a, $b) {
                 });
             }
             
-            foreach ($filtered_items as $item) : 
-                $ext = strtolower(pathinfo($item['name'], PATHINFO_EXTENSION));
-                $is_image = in_array($ext, ['jpg', 'jpeg', 'png']);
-                $is_media = in_array($ext, ['mp3', 'mp4']);
-                $is_pdf = $ext === 'pdf';
-            ?>
-                <div class="file-card">
-                    <div class="file-preview">
-                        <?php if ($is_image) : ?>
-                            <img src="?preview=1&file=<?= urlencode($item['path']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" loading="lazy">
-                        <?php elseif ($is_pdf) : ?>
-                            <canvas class="pdf-thumbnail" data-pdf="?pdf_thumbnail=1&file=<?= urlencode($item['path']) ?>" data-page="1"></canvas>
-                        <?php elseif ($is_media) : ?>
-                            <div class="document-preview" style="background-color: #783DFF;">
-                                <div class="document-icon" style="color: white;">
-                                    <i class="fas <?= strpos($item['name'], '.mp4') !== false ? 'fa-video' : 'fa-music' ?>"></i>
+            if (empty($filtered_items)) : ?>
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucun fichier disponible dans cette section</p>
+                    <?php if ($role === 'admin') : ?>
+                        <p>Glissez et déposez des fichiers pour commencer</p>
+                    <?php endif; ?>
+                </div>
+            <?php else :
+                foreach ($filtered_items as $item) : 
+                    $ext = strtolower(pathinfo($item['name'], PATHINFO_EXTENSION));
+                    $is_image = in_array($ext, ['jpg', 'jpeg', 'png']);
+                    $is_media = in_array($ext, ['mp3', 'mp4']);
+                    $is_pdf = $ext === 'pdf';
+                ?>
+                    <div class="file-card">
+                        <div class="file-preview">
+                            <?php if ($is_image) : ?>
+                                <img src="?preview=1&file=<?= urlencode($item['path']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" loading="lazy">
+                            <?php elseif ($is_pdf) : ?>
+                                <canvas class="pdf-thumbnail" data-pdf="?pdf_thumbnail=1&file=<?= urlencode($item['path']) ?>" data-page="1"></canvas>
+                            <?php elseif ($is_media) : ?>
+                                <div class="document-preview" style="background-color: #783DFF;">
+                                    <div class="document-icon" style="color: white;">
+                                        <i class="fas <?= strpos($item['name'], '.mp4') !== false ? 'fa-video' : 'fa-music' ?>"></i>
+                                    </div>
+                                    <div class="document-name" style="color: white;"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
                                 </div>
-                                <div class="document-name" style="color: white;"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
-                            </div>
-                        <?php else : ?>
-                            <div class="document-preview">
-                                <div class="document-icon">
-                                    <i class="fas fa-file-alt"></i>
+                            <?php else : ?>
+                                <div class="document-preview">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="document-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
                                 </div>
-                                <div class="document-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="file-info">
-                        <div class="file-name"><?= htmlspecialchars($item['name']) ?></div>
-                        <div class="file-actions">
-                            <?php if ($is_media && strpos($item['name'], '.mp4') !== false) : ?>
-                                <button onclick="openMediaPreview('?stream&download=<?= urlencode($item['path']) ?>')" class="btn btn-primary" title="Lire">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            <?php endif; ?>
-                            <button onclick="window.location.href='?download=<?= urlencode($item['path']) ?>'" class="btn btn-secondary" title="Télécharger">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <?php if ($role === 'admin') : ?>
-                                <form method="post" class="share-form">
-                                    <input type="hidden" name="file" value="<?= htmlspecialchars($item['path']) ?>">
-                                    <?php if (!$item['is_shared']) : ?>
-                                        <button type="submit" name="share" class="btn btn-primary" title="Partager">
-                                            <i class="fas fa-share-alt"></i>
-                                        </button>
-                                    <?php else : ?>
-                                        <button type="submit" name="unshare" class="btn btn-secondary" title="Ne plus partager">
-                                            <i class="fas fa-ban"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                </form>
                             <?php endif; ?>
                         </div>
+                        <div class="file-info">
+                            <div class="file-name"><?= htmlspecialchars($item['name']) ?></div>
+                            <div class="file-actions">
+                                <?php if ($is_media && strpos($item['name'], '.mp4') !== false) : ?>
+                                    <button onclick="openMediaPreview('?stream&download=<?= urlencode($item['path']) ?>')" class="btn btn-primary" title="Lire">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                <?php endif; ?>
+                                <button onclick="window.location.href='?download=<?= urlencode($item['path']) ?>'" class="btn btn-secondary" title="Télécharger">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <?php if ($role === 'admin') : ?>
+                                    <form method="post" class="share-form">
+                                        <input type="hidden" name="file" value="<?= htmlspecialchars($item['path']) ?>">
+                                        <?php if (!$item['is_shared']) : ?>
+                                            <button type="submit" name="share" class="btn btn-primary" title="Partager">
+                                                <i class="fas fa-share-alt"></i>
+                                            </button>
+                                        <?php else : ?>
+                                            <button type="submit" name="unshare" class="btn btn-secondary" title="Ne plus partager">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach;
+            endif; ?>
         </div>
     </div>
 
