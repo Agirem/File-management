@@ -1,0 +1,28 @@
+# Autoriser l'accès depuis n'importe quelle origine
+Options +FollowSymLinks +MultiViews
+RewriteEngine On
+AllowOverride All
+
+# Permissions d'accès
+Order Allow,Deny
+Allow from all
+Require all granted
+
+# Headers pour CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+</IfModule>
+
+# Autoriser l'exécution PHP
+<FilesMatch "\.php$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Protection des dossiers
+<DirectoryMatch "^/.*/\.">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>

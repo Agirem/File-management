@@ -35,12 +35,12 @@ function login() {
         
         foreach ($config['auth'] as $user) {
             if ($username === $user['username'] && $password === $user['password']) {
-                $_SESSION['logged_in'] = true;
+            $_SESSION['logged_in'] = true;
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['username'] = $username;
-                header('Location: index.php');
-                exit;
-            }
+            header('Location: index.php');
+            exit;
+        }
         }
         $error = "Identifiants incorrects";
     }
@@ -48,7 +48,7 @@ function login() {
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Connexion - FileShare</title>
+        <title>Connexion - AgiremHub</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="assets/css/style.css">
@@ -59,8 +59,7 @@ function login() {
             <div class="login-left">
                 <div class="login-header">
                     <div class="brand">
-                        <i class="fas fa-share-nodes"></i>
-                        <h1>FileShare</h1>
+                        <h1>AgiremHub</h1>
                     </div>
                     <p class="welcome-text">Bienvenue sur votre espace de partage de fichiers</p>
                 </div>
@@ -94,7 +93,7 @@ function login() {
                             <span>Se connecter</span>
                             <i class="fas fa-arrow-right"></i>
                         </button>
-                    </form>
+            </form>
                 </div>
             </div>
         </div>
@@ -356,7 +355,7 @@ usort($items, function($a, $b) {
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-logo">
-            FileShare
+            AgiremHub
         </div>
         <nav class="sidebar-nav">
             <?php if ($role === 'admin') : ?>
@@ -415,11 +414,13 @@ usort($items, function($a, $b) {
                 <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
                 <p>Glissez et déposez vos fichiers ici</p>
                 <p>ou</p>
-                <label class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    <span>Sélectionner des fichiers</span>
-                    <input type="file" multiple style="display: none">
-                </label>
+                <form id="upload-form" enctype="multipart/form-data" style="display: inline;">
+                    <label for="file-input" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span>Sélectionner des fichiers</span>
+                    </label>
+                    <input type="file" id="file-input" name="files[]" multiple style="display: none;">
+                </form>
             </div>
             <div class="upload-progress-container"></div>
         <?php endif; ?>
@@ -488,7 +489,7 @@ usort($items, function($a, $b) {
                                     <div class="document-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
                                 </div>
                             <?php endif; ?>
-                        </div>
+        </div>
                         <div class="file-info">
                             <div class="file-name"><?= htmlspecialchars($item['name']) ?></div>
                             <div class="file-actions">
@@ -496,7 +497,7 @@ usort($items, function($a, $b) {
                                     <button onclick="openMediaPreview('?stream&download=<?= urlencode($item['path']) ?>')" class="btn btn-primary" title="Lire">
                                         <i class="fas fa-play"></i>
                                     </button>
-                                <?php endif; ?>
+            <?php endif; ?>
                                 <button onclick="window.location.href='?download=<?= urlencode($item['path']) ?>'" class="btn btn-secondary" title="Télécharger">
                                     <i class="fas fa-download"></i>
                                 </button>
@@ -507,13 +508,13 @@ usort($items, function($a, $b) {
                                             <button type="submit" name="share" class="btn btn-primary" title="Partager">
                                                 <i class="fas fa-share-alt"></i>
                                             </button>
-                                        <?php else : ?>
+                    <?php else : ?>
                                             <button type="submit" name="unshare" class="btn btn-secondary" title="Ne plus partager">
                                                 <i class="fas fa-ban"></i>
                                             </button>
-                                        <?php endif; ?>
+                        <?php endif; ?>
                                     </form>
-                                <?php endif; ?>
+                    <?php endif; ?>
                             </div>
                         </div>
                     </div>
