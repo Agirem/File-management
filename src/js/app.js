@@ -13,9 +13,13 @@ function initializeFileSystem() {
             
             const link = item.querySelector('a');
             if (link && !item.classList.contains('is-uploading')) {
-                if (link.getAttribute('data-type') === 'media') {
+                const type = link.getAttribute('data-type');
+                if (type === 'media') {
                     e.preventDefault();
                     openMediaPreview(link.href);
+                } else if (type === 'pdf') {
+                    e.preventDefault();
+                    openPDFPreview(link.href);
                 }
             }
         });
@@ -88,6 +92,23 @@ function openMediaPreview(url) {
                     : `<audio controls><source src="${url}" type="audio/mpeg"></audio>`
                 }
             </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.querySelector('.close').onclick = () => modal.remove();
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+}
+
+function openPDFPreview(url) {
+    const modal = document.createElement('div');
+    modal.className = 'modal pdf-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <iframe src="${url}" class="pdf-viewer"></iframe>
         </div>
     `;
     
@@ -181,5 +202,96 @@ function debounce(func, wait) {
         };
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
+    };
+}
+
+async function previewPDF(filePath) {
+    // Créer la modal
+    const modal = document.createElement('div');
+    modal.className = 'modal pdf-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="pdf-controls">
+                <button class="btn btn-icon" id="prev-page">◀</button>
+                <span id="page-info">Page <span id="page-num"></span> / <span id="page-count"></span></span>
+                <button class="btn btn-icon" id="next-page">▶</button>
+                <select id="zoom-select">
+                    <option value="0.5">50%</option>
+                    <option value="0.75">75%</option>
+                    <option value="1" selected>100%</option>
+                    <option value="1.25">125%</option>
+                    <option value="1.5">150%</option>
+                    <option value="2">200%</option>
+                </select>
+            </div>
+            <canvas id="pdf-canvas"></canvas>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Variables pour le PDF
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1;
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Charger le PDF
+    try {
+        const loadingTask = pdfjsLib.getDocument('?pdf_preview=1&file=' + encodeURIComponent(filePath));
+        pdfDoc = await loadingTask.promise;
+        document.getElementById('page-count').textContent = pdfDoc.numPages;
+        renderPage(pageNum);
+    } catch (error) {
+        console.error('Erreur lors du chargement du PDF:', error);
+        modal.remove();
+        alert('Erreur lors du chargement du PDF');
+        return;
+    }
+    
+    // Fonction pour rendre une page
+    async function renderPage(num) {
+        const page = await pdfDoc.getPage(num);
+        const viewport = page.getViewport({ scale });
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        try {
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+            
+            document.getElementById('page-num').textContent = num;
+        } catch (error) {
+            console.error('Erreur lors du rendu de la page:', error);
+        }
+    }
+    
+    // Gestionnaires d'événements
+    document.getElementById('prev-page').onclick = () => {
+        if (pageNum <= 1) return;
+        pageNum--;
+        renderPage(pageNum);
+    };
+    
+    document.getElementById('next-page').onclick = () => {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        renderPage(pageNum);
+    };
+    
+    document.getElementById('zoom-select').onchange = (e) => {
+        scale = parseFloat(e.target.value);
+        renderPage(pageNum);
+    };
+    
+    // Fermeture de la modal
+    modal.querySelector('.close').onclick = () => modal.remove();
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
     };
 } 

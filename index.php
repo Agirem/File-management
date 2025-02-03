@@ -173,6 +173,34 @@ if (isset($_GET['download'])) {
     }
 }
 
+// Ajout de la gestion des vues PDF
+if (isset($_GET['pdf_preview']) && isset($_GET['file'])) {
+    $file = $base_folder . '/' . $_GET['file'];
+    if (file_exists($file) && is_file($file)) {
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if ($ext === 'pdf') {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . basename($file) . '"');
+            readfile($file);
+            exit;
+        }
+    }
+}
+
+// Gestion des prévisualisations d'images
+if (isset($_GET['preview']) && isset($_GET['file'])) {
+    $file = $base_folder . '/' . $_GET['file'];
+    if (file_exists($file) && is_file($file)) {
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+            $mime = $config['mime_types'][$ext];
+            header('Content-Type: ' . $mime);
+            readfile($file);
+            exit;
+        }
+    }
+}
+
 // Obtenir la liste des fichiers et dossiers
 $items = [];
 if (is_dir($absolute_path)) {
@@ -220,87 +248,73 @@ usort($items, function($a, $b) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/style.css">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-left">
-                <h1><?= $role === 'admin' ? 'Administration' : 'Fichiers Partagés' ?></h1>
-                <?php if ($role === 'admin') : ?>
+    <?php if ($role === 'admin') : ?>
+        <!-- Interface Admin -->
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Administration</h1>
                     <div class="view-toggle">
                         <a href="?view=private" class="<?= !isset($_GET['view']) || $_GET['view'] !== 'shared' ? 'active' : '' ?>">Mes Fichiers</a>
                         <a href="?view=shared" class="<?= isset($_GET['view']) && $_GET['view'] === 'shared' ? 'active' : '' ?>">Fichiers Partagés</a>
                     </div>
-                <?php endif; ?>
+                </div>
+                <div class="header-right">
+                    <span class="username"><?= htmlspecialchars($_SESSION['username']) ?></span>
+                    <a href="?logout" class="logout-btn">Déconnexion</a>
+                </div>
             </div>
-            <div class="header-right">
-                <span class="username"><?= htmlspecialchars($_SESSION['username']) ?></span>
-                <a href="?logout" class="logout-btn">Déconnexion</a>
+
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Rechercher des fichiers...">
             </div>
-        </div>
 
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="Rechercher des fichiers...">
-        </div>
+            <div class="dropzone">
+                <p>Glissez et déposez vos fichiers ici</p>
+                <p>ou</p>
+                <label class="btn btn-primary">
+                    Choisir des fichiers
+                    <input type="file" multiple style="display: none">
+                </label>
+            </div>
 
-        <div class="breadcrumb">
-            <?php 
-            $view_param = ($role === 'admin' && isset($_GET['view'])) ? '&view=' . $_GET['view'] : '';
-            ?>
-            <a href="?path=<?= $view_param ?>">Accueil</a>
-            <?php
-            $parts = explode('/', $current_path);
-            $path = '';
-            foreach ($parts as $part) {
-                if ($part) {
-                    $path .= ($path ? '/' : '') . $part;
-                    echo ' / <a href="?path=' . urlencode($path) . $view_param . '">' . htmlspecialchars($part) . '</a>';
-                }
-            }
-            ?>
-        </div>
+            <div class="upload-progress-container"></div>
 
-        <?php if ($role === 'admin') : ?>
-        <div class="dropzone">
-            <p>Glissez et déposez vos fichiers ici</p>
-            <p>ou</p>
-            <label class="btn btn-primary">
-                Choisir des fichiers
-                <input type="file" multiple style="display: none">
-            </label>
-        </div>
-
-        <div class="upload-progress-container"></div>
-        <?php endif; ?>
-
-        <ul class="file-list">
-            <?php if ($current_path) : ?>
-                <li class="file-item">
-                    <a href="?path=<?= urlencode(dirname($current_path)) . $view_param ?>">
-                        <span class="folder-icon"></span>
-                        <span class="file-name">..</span>
-                    </a>
-                </li>
-            <?php endif; ?>
-
-            <?php foreach ($items as $item) : ?>
-                <li class="file-item">
-                    <?php if ($item['is_dir']) : ?>
-                        <a href="?path=<?= urlencode($item['path']) . $view_param ?>">
+            <ul class="file-list">
+                <?php if ($current_path) : ?>
+                    <li class="file-item">
+                        <a href="?path=<?= urlencode(dirname($current_path)) . $view_param ?>">
                             <span class="folder-icon"></span>
-                            <span class="file-name"><?= htmlspecialchars($item['name']) ?></span>
+                            <span class="file-name">..</span>
                         </a>
-                    <?php else : ?>
-                        <a href="?download=<?= urlencode($item['path']) . $view_param ?>" <?= isset($item['is_media']) && $item['is_media'] ? 'data-type="media"' : '' ?>>
-                            <span class="<?= isset($item['is_media']) && $item['is_media'] ? 'media-icon' : 'file-icon' ?>"></span>
-                            <span class="file-name"><?= htmlspecialchars($item['name']) ?></span>
-                        </a>
-                        <div class="file-actions">
-                            <?php if (isset($item['is_media']) && $item['is_media']) : ?>
-                                <a href="?stream&download=<?= urlencode($item['path']) . $view_param ?>" class="btn btn-primary">Lire</a>
-                            <?php endif; ?>
-                            <a href="?download=<?= urlencode($item['path']) . $view_param ?>" class="btn">Télécharger</a>
-                            <?php if ($role === 'admin') : ?>
+                    </li>
+                <?php endif; ?>
+
+                <?php foreach ($items as $item) : ?>
+                    <li class="file-item">
+                        <?php if ($item['is_dir']) : ?>
+                            <a href="?path=<?= urlencode($item['path']) . $view_param ?>">
+                                <span class="folder-icon"></span>
+                                <span class="file-name"><?= htmlspecialchars($item['name']) ?></span>
+                            </a>
+                        <?php else : ?>
+                            <a href="?download=<?= urlencode($item['path']) . $view_param ?>">
+                                <span class="<?= isset($item['is_media']) && $item['is_media'] ? 'media-icon' : 'file-icon' ?>"></span>
+                                <span class="file-name"><?= htmlspecialchars($item['name']) ?></span>
+                            </a>
+                            <div class="file-actions">
+                                <?php if (isset($item['is_media']) && $item['is_media']) : ?>
+                                    <a href="?stream&download=<?= urlencode($item['path']) . $view_param ?>" class="btn btn-primary">Lire</a>
+                                <?php endif; ?>
+                                <?php if (strtolower(pathinfo($item['name'], PATHINFO_EXTENSION)) === 'pdf') : ?>
+                                    <button onclick="previewPDF('<?= htmlspecialchars($item['path']) ?>')" class="btn btn-primary">Voir le PDF</button>
+                                <?php endif; ?>
+                                <a href="?download=<?= urlencode($item['path']) . $view_param ?>" class="btn">Télécharger</a>
                                 <form method="post" class="share-form" style="display: inline;">
                                     <input type="hidden" name="file" value="<?= htmlspecialchars($item['path']) ?>">
                                     <?php if (!$item['is_shared']) : ?>
@@ -309,13 +323,109 @@ usort($items, function($a, $b) {
                                         <button type="submit" name="unshare" class="btn btn-danger">Ne plus partager</button>
                                     <?php endif; ?>
                                 </form>
-                            <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php else : ?>
+        <!-- Interface Guest -->
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Fichiers Partagés</h1>
+                </div>
+                <div class="header-right">
+                    <span class="username"><?= htmlspecialchars($_SESSION['username']) ?></span>
+                    <a href="?logout" class="logout-btn">Déconnexion</a>
+                </div>
+            </div>
+
+            <div class="guest-interface">
+                <div class="categories-nav">
+                    <a href="?category=all" class="category-item <?= !isset($_GET['category']) || $_GET['category'] === 'all' ? 'active' : '' ?>">
+                        <span class="category-icon">📑</span>
+                        Tout
+                    </a>
+                    <a href="?category=documents" class="category-item <?= isset($_GET['category']) && $_GET['category'] === 'documents' ? 'active' : '' ?>">
+                        <span class="category-icon">📄</span>
+                        Documents
+                    </a>
+                    <a href="?category=media" class="category-item <?= isset($_GET['category']) && $_GET['category'] === 'media' ? 'active' : '' ?>">
+                        <span class="category-icon">🎬</span>
+                        Médias
+                    </a>
+                    <a href="?category=images" class="category-item <?= isset($_GET['category']) && $_GET['category'] === 'images' ? 'active' : '' ?>">
+                        <span class="category-icon">🖼️</span>
+                        Images
+                    </a>
+                    <a href="?category=recent" class="category-item <?= isset($_GET['category']) && $_GET['category'] === 'recent' ? 'active' : '' ?>">
+                        <span class="category-icon">🕒</span>
+                        Récents
+                    </a>
+                </div>
+
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Rechercher des fichiers...">
+                </div>
+
+                <div class="files-grid">
+                    <?php
+                    // Filtrer les fichiers selon la catégorie
+                    $category = isset($_GET['category']) ? $_GET['category'] : 'all';
+                    $filtered_items = array_filter($items, function($item) use ($category, $config) {
+                        if ($item['is_dir']) return false;
+                        
+                        $ext = strtolower(pathinfo($item['name'], PATHINFO_EXTENSION));
+                        
+                        switch ($category) {
+                            case 'documents':
+                                return in_array($ext, ['pdf', 'txt']);
+                            case 'media':
+                                return in_array($ext, ['mp3', 'mp4']);
+                            case 'images':
+                                return in_array($ext, ['jpg', 'jpeg', 'png']);
+                            case 'recent':
+                                $file_path = $config['folders']['shared'] . '/' . $item['path'];
+                                return (time() - filemtime($file_path)) < (7 * 24 * 60 * 60); // 7 jours
+                            default:
+                                return true;
+                        }
+                    });
+                    
+                    foreach ($filtered_items as $item) : 
+                        $ext = strtolower(pathinfo($item['name'], PATHINFO_EXTENSION));
+                        $is_image = in_array($ext, ['jpg', 'jpeg', 'png']);
+                        $is_media = in_array($ext, ['mp3', 'mp4']);
+                        $is_pdf = $ext === 'pdf';
+                    ?>
+                        <div class="file-card">
+                            <div class="file-preview">
+                                <?php if ($is_image) : ?>
+                                    <img src="?preview=1&file=<?= urlencode($item['path']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" loading="lazy">
+                                <?php else : ?>
+                                    <span class="file-type-icon <?= $is_media ? 'media' : ($is_pdf ? 'pdf' : 'document') ?>"></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name"><?= htmlspecialchars($item['name']) ?></div>
+                                <div class="file-actions">
+                                    <?php if ($is_media) : ?>
+                                        <button onclick="openMediaPreview('?stream&download=<?= urlencode($item['path']) ?>')" class="btn btn-icon" title="Lire">▶️</button>
+                                    <?php endif; ?>
+                                    <?php if ($is_pdf) : ?>
+                                        <button onclick="previewPDF('<?= htmlspecialchars($item['path']) ?>')" class="btn btn-icon" title="Voir">👁️</button>
+                                    <?php endif; ?>
+                                    <button onclick="window.location.href='?download=<?= urlencode($item['path']) ?>'" class="btn btn-icon" title="Télécharger">⬇️</button>
+                                </div>
+                            </div>
                         </div>
-                    <?php endif; ?>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <script src="src/js/app.js"></script>
 </body>
