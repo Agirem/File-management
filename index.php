@@ -404,18 +404,38 @@ usort($items, function($a, $b) {
                             <div class="file-preview">
                                 <?php if ($is_image) : ?>
                                     <img src="?preview=1&file=<?= urlencode($item['path']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" loading="lazy">
+                                <?php elseif ($is_pdf) : ?>
+                                    <div class="pdf-preview">
+                                        <div class="pdf-preview-content">
+                                            <div class="pdf-icon">PDF</div>
+                                            <div class="pdf-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
+                                        </div>
+                                    </div>
+                                <?php elseif ($is_media) : ?>
+                                    <?php if (strpos($item['name'], '.mp4') !== false) : ?>
+                                        <div class="video-preview">
+                                            <div class="play-button">▶</div>
+                                        </div>
+                                    <?php else : ?>
+                                        <div class="audio-preview">
+                                            <div class="audio-icon">🎵</div>
+                                            <div class="audio-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else : ?>
-                                    <span class="file-type-icon <?= $is_media ? 'media' : ($is_pdf ? 'pdf' : 'document') ?>"></span>
+                                    <div class="document-preview">
+                                        <div class="document-icon">
+                                            <?= strtoupper(pathinfo($item['name'], PATHINFO_EXTENSION)) ?>
+                                        </div>
+                                        <div class="document-name"><?= pathinfo($item['name'], PATHINFO_FILENAME) ?></div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                             <div class="file-info">
                                 <div class="file-name"><?= htmlspecialchars($item['name']) ?></div>
                                 <div class="file-actions">
-                                    <?php if ($is_media) : ?>
+                                    <?php if ($is_media && strpos($item['name'], '.mp4') !== false) : ?>
                                         <button onclick="openMediaPreview('?stream&download=<?= urlencode($item['path']) ?>')" class="btn btn-icon" title="Lire">▶️</button>
-                                    <?php endif; ?>
-                                    <?php if ($is_pdf) : ?>
-                                        <button onclick="previewPDF('<?= htmlspecialchars($item['path']) ?>')" class="btn btn-icon" title="Voir">👁️</button>
                                     <?php endif; ?>
                                     <button onclick="window.location.href='?download=<?= urlencode($item['path']) ?>'" class="btn btn-icon" title="Télécharger">⬇️</button>
                                 </div>
