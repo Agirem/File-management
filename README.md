@@ -8,15 +8,6 @@ FileShare is a web application that enables file sharing between an administrato
 - Modern web browser
 - Local network connection
 
-## 📦 Folder Structure
-
-- `assets/`: Contains all the assets for the frontend.
-- `config/`: Configuration files for the application.
-- `controllers/`: PHP controllers for handling API requests.
-- `models/`: PHP models for database operations.
-- `views/`: HTML templates for the frontend.
-- `index.php`: Main entry point for the application.
-
 
 ## 🔧 Installation
 
@@ -192,3 +183,6 @@ To modify the application:
    - Use descriptive file names
    - Organize files logically
    - Regular backups recommended
+
+
+

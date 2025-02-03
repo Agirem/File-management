@@ -131,6 +131,9 @@ function handleDrop(e) {
     handleFiles(files);
 }
 
+
+
+
 function handleFiles(files) {
     const formData = new FormData();
     [...files].forEach((file, index) => {
@@ -256,3 +259,91 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function deleteFile(filePath, fileName) {
+    // Création du modal
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    modal.innerHTML = `
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h3 class="confirm-modal-title">Confirmer la suppression</h3>
+            <p class="confirm-modal-message">
+                Êtes-vous sûr de vouloir supprimer le fichier "${fileName}" ?<br>
+                Cette action est irréversible.
+            </p>
+            <div class="confirm-modal-buttons">
+                <button class="confirm-btn confirm-btn-cancel">
+                    <i class="fas fa-times"></i>
+                    Annuler
+                </button>
+                <button class="confirm-btn confirm-btn-delete">
+                    <i class="fas fa-trash-alt"></i>
+                    Supprimer
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    
+    // Animation d'entrée
+    setTimeout(() => modal.classList.add('active'), 10);
+
+    // Gestionnaires d'événements
+    const closeModal = () => {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    };
+
+    const handleDelete = () => {
+        // Désactiver les boutons pendant la suppression
+        const buttons = modal.querySelectorAll('.confirm-btn');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        });
+
+        // Modifier le message
+        const message = modal.querySelector('.confirm-modal-message');
+        message.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+
+        const formData = new FormData();
+        formData.append('delete', '1');
+        formData.append('file', filePath);
+
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Animation de succès avant le rechargement
+                message.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Fichier supprimé avec succès!';
+                setTimeout(() => {
+                    closeModal();
+                    window.location.reload();
+                }, 1000);
+            } else {
+                throw new Error(data.error || 'Erreur lors de la suppression');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            message.innerHTML = `<i class="fas fa-exclamation-circle" style="color: var(--error);"></i> ${error.message}`;
+            // Réactiver le bouton d'annulation
+            buttons[0].disabled = false;
+            buttons[0].style.opacity = '1';
+        });
+    };
+
+    // Événements des boutons
+    modal.querySelector('.confirm-btn-cancel').addEventListener('click', closeModal);
+    modal.querySelector('.confirm-btn-delete').addEventListener('click', handleDelete);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+}
