@@ -1,6 +1,6 @@
-# FileShare - File Sharing System
+# AgiremHub - File Sharing System
 
-FileShare is a web application that enables file sharing between an administrator and guest users. The administrator can manage private files and choose which ones to share with guests.
+AgiremHub is a web application that enables file sharing between an administrator and guest users. The administrator can manage private files and choose which ones to share with guests.
 
 ## 🚀 Requirements
 
